@@ -34,15 +34,11 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
+  // 1. First declare all hooks (no conditional hooks allowed)
   const { user, isLoading, loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("login");
   
-  // Redirect if user is already logged in
-  if (!isLoading && user) {
-    return <Redirect to="/" />;
-  }
-
   // Login form handler
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -63,7 +59,10 @@ export default function AuthPage() {
     },
   });
   
-
+  // 2. Then handle conditional redirects after all hooks are called
+  if (!isLoading && user) {
+    return <Redirect to="/" />;
+  }
 
   // Handle login form submission
   function onLoginSubmit(data: LoginFormValues) {
