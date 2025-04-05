@@ -14,7 +14,9 @@ import BottomNav from "@/components/layout/bottom-nav";
 import Header from "@/components/layout/header";
 
 // Initialize Clerk with your publishable key
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+// For debugging purposes, console log all environment variables
+console.log("Environment variables:", import.meta.env);
+const clerkPubKey = "pk_test_dWx0aW1hdGUtam9leS05NS5jbGVyay5hY2NvdW50cy5kZXYk"; // Hardcoded for now
 
 function AppRoutes() {
   const { isAuthenticated, isLoading } = useAuth();
