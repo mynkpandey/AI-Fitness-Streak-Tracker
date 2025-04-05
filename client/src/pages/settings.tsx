@@ -1,17 +1,26 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { useUser, useClerk } from "@clerk/clerk-react";
+import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Bell, User, Shield, HelpCircle } from "lucide-react";
+import { AlertCircle, Bell, User, Shield, HelpCircle, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Settings() {
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const { user, logoutMutation } = useAuth();
+  const { toast } = useToast();
 
   return (
     <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Settings</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Settings</h1>
+        <div className="flex items-center">
+          <div className="bg-primary/10 h-10 w-10 rounded-full flex items-center justify-center text-primary font-semibold mr-2">
+            {user?.username?.charAt(0).toUpperCase() || "U"}
+          </div>
+          <div className="text-sm font-medium">{user?.username || "User"}</div>
+        </div>
+      </div>
       
       <div className="space-y-6">
         {/* Account Settings */}
@@ -37,7 +46,7 @@ export default function Settings() {
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-base font-medium">Email</h3>
-                <p className="text-sm text-gray-500">{user?.primaryEmailAddress?.emailAddress || "Not set"}</p>
+                <p className="text-sm text-gray-500">{user?.email || "Not set"}</p>
               </div>
               <Button variant="outline">
                 Change
@@ -58,9 +67,15 @@ export default function Settings() {
               <Button 
                 variant="destructive" 
                 className="w-full"
-                onClick={() => signOut()}
+                onClick={() => logoutMutation.mutate()}
+                disabled={logoutMutation.isPending}
               >
-                Sign out
+                {logoutMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                    Signing out...
+                  </>
+                ) : "Sign out"}
               </Button>
             </div>
           </CardContent>

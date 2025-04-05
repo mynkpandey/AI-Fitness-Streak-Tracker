@@ -13,17 +13,17 @@ export default function BottomNav() {
         <div className="max-w-5xl mx-auto px-4">
           <div className="flex justify-around">
             <Link href="/">
-              <a className={`flex flex-col items-center py-3 px-3 ${location === '/' ? 'text-primary' : 'text-gray-500'}`}>
+              <div className={`flex flex-col items-center py-3 px-3 ${location === '/' ? 'text-primary' : 'text-gray-500'}`}>
                 <Home className="h-6 w-6" />
                 <span className="text-xs mt-1 font-medium">Home</span>
-              </a>
+              </div>
             </Link>
             
             <Link href="/stats">
-              <a className={`flex flex-col items-center py-3 px-3 ${location === '/stats' ? 'text-primary' : 'text-gray-500'}`}>
+              <div className={`flex flex-col items-center py-3 px-3 ${location === '/stats' ? 'text-primary' : 'text-gray-500'}`}>
                 <BarChart2 className="h-6 w-6" />
                 <span className="text-xs mt-1">Stats</span>
-              </a>
+              </div>
             </Link>
             
             <button 
@@ -39,17 +39,17 @@ export default function BottomNav() {
             </button>
             
             <Link href="/insights">
-              <a className={`flex flex-col items-center py-3 px-3 ${location === '/insights' ? 'text-primary' : 'text-gray-500'}`}>
+              <div className={`flex flex-col items-center py-3 px-3 ${location === '/insights' ? 'text-primary' : 'text-gray-500'}`}>
                 <Zap className="h-6 w-6" />
                 <span className="text-xs mt-1">Insights</span>
-              </a>
+              </div>
             </Link>
             
             <Link href="/settings">
-              <a className={`flex flex-col items-center py-3 px-3 ${location === '/settings' ? 'text-primary' : 'text-gray-500'}`}>
+              <div className={`flex flex-col items-center py-3 px-3 ${location === '/settings' ? 'text-primary' : 'text-gray-500'}`}>
                 <Settings className="h-6 w-6" />
                 <span className="text-xs mt-1">Settings</span>
-              </a>
+              </div>
             </Link>
           </div>
         </div>
