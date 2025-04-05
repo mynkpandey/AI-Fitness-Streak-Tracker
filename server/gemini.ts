@@ -6,7 +6,7 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 // Configure the model with safety settings
 const modelConfig = {
-  model: "gemini-1.0-pro",
+  model: "gemini-pro",
   safetySettings: [
     {
       category: HarmCategory.HARM_CATEGORY_HARASSMENT,
