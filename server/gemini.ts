@@ -2,6 +2,9 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/ge
 
 // Initialize the Google Generative AI with the API key
 const apiKey = process.env.GEMINI_API_KEY || '';
+if (!apiKey) {
+  console.error('⚠️ GEMINI_API_KEY is not set. AI features will not work properly!');
+}
 const genAI = new GoogleGenerativeAI(apiKey);
 
 // Configure the model with safety settings
@@ -27,7 +30,7 @@ const modelConfig = {
   ],
 };
 
-// Development mode flag - set to false since we have the API key
+// Development mode flag - ensure it's false to use the real API
 const DEV_MODE = false;
 
 // Function to handle chat-based health advice
