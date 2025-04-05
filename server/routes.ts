@@ -8,10 +8,7 @@ import { ClerkExpressWithAuth } from "@clerk/clerk-sdk-node";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Clerk middleware
-  console.log("Environment variables on server:", process.env.CLERK_SECRET_KEY);
-  const clerkMiddleware = ClerkExpressWithAuth({
-    secretKey: "sk_test_bAhcFlAlcmx5ugSFZsA3r3xg5inrxZlnrK7zmsSZgr"
-  });
+  const clerkMiddleware = ClerkExpressWithAuth();
   
   // Add Clerk authentication middleware to all API routes
   app.use("/api", clerkMiddleware);

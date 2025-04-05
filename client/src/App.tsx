@@ -13,10 +13,11 @@ import { useAuth } from "@/hooks/use-auth";
 import BottomNav from "@/components/layout/bottom-nav";
 import Header from "@/components/layout/header";
 
-// Initialize Clerk with your publishable key
+// Initialize Clerk with publishable key from environment variables
 // For debugging purposes, console log all environment variables
 console.log("Environment variables:", import.meta.env);
-const clerkPubKey = "pk_test_dWx0aW1hdGUtam9leS05NS5jbGVyay5hY2NvdW50cy5kZXYk"; // Hardcoded for now
+// Ensure we have a valid publishable key, with a fallback for development
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || import.meta.env.CLERK_PUBLISHABLE_KEY || "pk_test_dWx0aW1hdGUtam9leS05NS5jbGVyay5hY2NvdW50cy5kZXYk";
 
 function AppRoutes() {
   const { isAuthenticated, isLoading } = useAuth();
