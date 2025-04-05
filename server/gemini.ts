@@ -27,10 +27,66 @@ const modelConfig = {
   ],
 };
 
-// TEMPORARY: Development mode flag
-const DEV_MODE = true;
+// Development mode flag - set to false since we have the API key
+const DEV_MODE = false;
 
-// Function to generate fitness suggestions based on user data
+// Function to handle chat-based health advice
+export async function generateHealthAdvice(userQuestion: string, userProfile?: { 
+  activities?: Array<{type: string, duration: number, date: Date | null}>,
+  currentStreak?: number,
+  totalWorkouts?: number 
+}) {
+  if (DEV_MODE || !apiKey) {
+    console.log('Using mock health advice for development mode');
+    return {
+      response: "It's recommended to drink at least 8 glasses of water daily to stay properly hydrated. This helps with energy levels, digestion, and overall health. Try carrying a water bottle with you throughout the day as a reminder."
+    };
+  }
+
+  const model = genAI.getGenerativeModel(modelConfig);
+  
+  // Create a context-aware prompt with user profile if available
+  let contextPrompt = '';
+  if (userProfile) {
+    contextPrompt = `
+    User Profile:
+    ${userProfile.activities && userProfile.activities.length > 0 ? 
+      `Recent Activities: ${userProfile.activities.slice(0, 3).map(a => {
+        const dateStr = a.date ? new Date(a.date).toLocaleDateString() : 'recently';
+        return `${a.type} (${a.duration} minutes) on ${dateStr}`;
+      }).join(', ')}` : 'No recent activities recorded.'
+    }
+    Current Streak: ${userProfile.currentStreak || 0} days
+    Total Workouts: ${userProfile.totalWorkouts || 0}
+    `;
+  }
+  
+  const prompt = `
+  You are a helpful, friendly fitness and health assistant. A user is asking for health advice.
+  
+  ${contextPrompt}
+  
+  User question: "${userQuestion}"
+  
+  Please provide a helpful, accurate, and concise response. Focus on evidence-based information.
+  Keep your response under 150 words and make it conversational but informative.
+  DO NOT include any headers, disclaimers, or notes about being an AI.
+  `;
+  
+  try {
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const text = response.text();
+    
+    return {
+      response: text.trim()
+    };
+  } catch (error) {
+    console.error('Error generating health advice:', error);
+    throw new Error('Failed to generate health advice');
+  }
+}
+
 export async function generateFitnessSuggestion(
   recentActivities: Array<{type: string, duration: number, date: Date | null}>,
   currentStreak: number,

@@ -38,3 +38,9 @@ export async function markSuggestionAsUsed(id: number) {
   const response = await apiRequest("POST", `/api/suggestions/${id}/use`);
   return response.json();
 }
+
+// Health advice chatbot API function
+export async function getHealthAdvice(question: string) {
+  const response = await apiRequest("POST", "/api/health/advice", { question });
+  return response.json();
+}

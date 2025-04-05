@@ -1,16 +1,163 @@
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AISuggestionCard } from "@/components/dashboard/ai-suggestion-card";
-import { BarChart, TrendingUp, Award, Calendar, Lightbulb } from "lucide-react";
+import { BarChart, TrendingUp, Award, Calendar, Lightbulb, Send, MessageCircle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useState, useRef, useEffect } from "react";
+import { getHealthAdvice } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { Activity, User } from "@shared/schema";
+
+// Message type for chat
+type Message = {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+};
+
+// Health Advice Chatbot Component
+function HealthChatbot() {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: 'assistant',
+      content: 'Hello! I\'m your fitness and health AI assistant. How can I help you today?',
+      timestamp: new Date()
+    }
+  ]);
+  const [inputValue, setInputValue] = useState('');
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  // Auto-scroll to bottom of chat when new messages are added
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  // Health advice mutation
+  const adviceMutation = useMutation({
+    mutationFn: getHealthAdvice,
+    onSuccess: (data) => {
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: data.response,
+          timestamp: new Date()
+        }
+      ]);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to get advice",
+        variant: "destructive"
+      });
+      
+      // Add error message to chat
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: "I'm sorry, I couldn't generate advice at the moment. Please try again later.",
+          timestamp: new Date()
+        }
+      ]);
+    }
+  });
+
+  // Handle sending a message
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!inputValue.trim()) return;
+    
+    // Add user message to chat
+    const userMessage: Message = {
+      role: 'user',
+      content: inputValue.trim(),
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    
+    // Request advice from AI
+    adviceMutation.mutate(userMessage.content);
+    
+    // Clear input
+    setInputValue('');
+  };
+
+  return (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <MessageCircle className="h-5 w-5 mr-2 text-primary" />
+          Health Advice Chatbot
+        </CardTitle>
+        <CardDescription>Ask me anything about fitness, health, or nutrition</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div 
+          ref={chatContainerRef}
+          className="h-72 overflow-y-auto mb-4 p-4 bg-gray-50 rounded-md"
+        >
+          {messages.map((message, index) => (
+            <div 
+              key={index} 
+              className={`mb-4 ${message.role === 'user' ? 'text-right' : ''}`}
+            >
+              <div 
+                className={`inline-block max-w-[85%] px-4 py-2 rounded-lg ${
+                  message.role === 'user' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-muted text-muted-foreground'
+                }`}
+              >
+                <p>{message.content}</p>
+                <div className={`text-xs mt-1 ${message.role === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground/70'}`}>
+                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+            </div>
+          ))}
+          {adviceMutation.isPending && (
+            <div className="flex items-center text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Thinking...
+            </div>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter>
+        <form onSubmit={handleSendMessage} className="w-full flex gap-2">
+          <Input
+            placeholder="Ask a health or fitness question..."
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            disabled={adviceMutation.isPending}
+            className="flex-1"
+          />
+          <Button type="submit" disabled={adviceMutation.isPending || !inputValue.trim()}>
+            <Send className="h-4 w-4" />
+            <span className="sr-only">Send message</span>
+          </Button>
+        </form>
+      </CardFooter>
+    </Card>
+  );
+}
 
 export default function Insights() {
-  const { data: activities, isLoading } = useQuery({
+  const { data: activities, isLoading } = useQuery<Activity[]>({
     queryKey: ["/api/activities"],
   });
 
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<User>({
     queryKey: ["/api/user"],
   });
 
@@ -47,6 +194,8 @@ export default function Insights() {
       <div className="mb-6">
         <AISuggestionCard />
       </div>
+      
+      <HealthChatbot />
       
       <Tabs defaultValue="overview" className="mb-6">
         <TabsList>

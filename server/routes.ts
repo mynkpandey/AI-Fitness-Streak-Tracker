@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { requireAuth, getUserId, hashPassword, comparePasswords } from "./auth";
-import { generateFitnessSuggestion } from "./gemini";
+import { generateFitnessSuggestion, generateHealthAdvice } from "./gemini";
 import { insertUserSchema, insertActivitySchema, loginUserSchema } from "@shared/schema";
 
 // Development mode flag
@@ -277,6 +277,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(updatedSuggestion);
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Health advice chatbot endpoint
+  app.post("/api/health/advice", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { question } = req.body;
+      
+      if (!question || typeof question !== 'string') {
+        return res.status(400).json({ error: "Question is required" });
+      }
+      
+      // Get user profile to personalize the response
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Get recent activities for context
+      const recentActivities = await storage.getActivities(userId, 3);
+      
+      // Generate health advice
+      const advice = await generateHealthAdvice(question, {
+        activities: recentActivities.map(a => ({
+          type: a.type,
+          duration: a.duration,
+          date: a.date
+        })),
+        currentStreak: user.currentStreak || 0,
+        totalWorkouts: user.totalWorkouts || 0
+      });
+      
+      res.json(advice);
+    } catch (error: any) {
+      console.error("Error generating health advice:", error);
       res.status(500).json({ error: error.message });
     }
   });
