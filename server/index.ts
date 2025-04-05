@@ -17,11 +17,12 @@ app.use(session({
   saveUninitialized: false,
   store: storage.sessionStore,
   cookie: {
-    secure: isProduction, // only use secure cookies in production
+    secure: false, // Set to false in all environments for now to ensure cookies work
     maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
     httpOnly: true,
-    sameSite: isProduction ? "strict" : "lax",
-  }
+    sameSite: "lax", // Use lax to ensure cookies work across redirects
+  },
+  name: "fitstreak.sid" // Set a specific name for our session cookie
 }));
 
 app.use((req, res, next) => {

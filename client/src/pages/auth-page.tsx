@@ -34,9 +34,14 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
-  const { user, loginMutation, registerMutation } = useAuth();
+  const { user, isLoading, loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("login");
+  
+  // Redirect if user is already logged in
+  if (!isLoading && user) {
+    return <Redirect to="/" />;
+  }
 
   // Login form handler
   const loginForm = useForm<LoginFormValues>({
@@ -58,10 +63,7 @@ export default function AuthPage() {
     },
   });
   
-  // If user is already authenticated, redirect to home page
-  if (user) {
-    return <Redirect to="/" />;
-  }
+
 
   // Handle login form submission
   function onLoginSubmit(data: LoginFormValues) {

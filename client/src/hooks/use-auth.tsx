@@ -37,9 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     data: user,
     error,
     isLoading,
+    refetch: refetchUser,
   } = useQuery<User | null, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    retry: 1,
   });
 
   const loginMutation = useMutation({
@@ -49,6 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      refetchUser(); // Explicitly refetch user data
       toast({
         title: "Login successful",
         description: `Welcome, ${user.username}!`,
@@ -70,6 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      refetchUser(); // Explicitly refetch user data
       toast({
         title: "Registration successful",
         description: `Welcome, ${user.username}!`,
@@ -89,7 +98,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
+      // Clear all queries in the cache
+      queryClient.clear();
       queryClient.setQueryData(["/api/user"], null);
+      
+      // Force redirect to auth page
+      window.location.href = '/auth';
+      
       toast({
         title: "Logged out",
         description: "You have been logged out successfully.",
