@@ -65,8 +65,14 @@ export type InsertActivity = {
   completed?: boolean | null;
 };
 
-export const insertActivitySchema = createInsertSchema(activities).omit({
-  id: true,
+export const insertActivitySchema = z.object({
+  userId: z.number(),
+  type: z.string(),
+  duration: z.number(),
+  notes: z.string().nullable().optional(),
+  date: z.date().nullable().optional(),
+  streakDay: z.number().nullable().optional(),
+  completed: z.boolean().nullable().optional(),
 });
 
 // AI Suggestion schema

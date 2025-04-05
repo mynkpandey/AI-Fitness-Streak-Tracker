@@ -23,6 +23,7 @@ const activitySchema = z.object({
   type: z.string().min(1, "Activity type is required"),
   duration: z.coerce.number().min(1, "Duration must be at least 1 minute"),
   notes: z.string().optional(),
+  completed: z.boolean().optional().default(true),
 });
 
 type ActivityFormValues = z.infer<typeof activitySchema>;
@@ -36,6 +37,7 @@ export function AddActivityModal({ isOpen, onClose }: AddActivityModalProps) {
       type: "running",
       duration: 30,
       notes: "",
+      completed: true
     },
   });
   
@@ -140,7 +142,11 @@ export function AddActivityModal({ isOpen, onClose }: AddActivityModalProps) {
                       rows={3}
                       className="w-full border border-gray-300 rounded-lg"
                       placeholder="Add details about your workout..."
-                      {...field}
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
                     />
                   </FormControl>
                   <FormMessage />
