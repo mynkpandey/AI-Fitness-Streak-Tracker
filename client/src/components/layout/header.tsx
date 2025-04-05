@@ -5,21 +5,13 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { ShieldCheck } from "lucide-react";
-
-// TEMPORARY: Development mode flag to bypass Clerk authentication
-const DEV_MODE = true;
+import { LogOut, ShieldCheck, User as UserIcon } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Header() {
-  // Mock user for development
-  const mockUser = {
-    imageUrl: null,
-    firstName: "Dev",
-    username: "User",
-  };
-  
-  // Use mock user in development mode
-  const user = DEV_MODE ? mockUser : null;
+  const { user, logoutMutation } = useAuth();
+  const { toast } = useToast();
 
   return (
     <header className="bg-white shadow-sm">
@@ -34,12 +26,12 @@ export default function Header() {
           <DropdownMenuTrigger className="focus:outline-none">
             <div className="flex items-center space-x-2">
               <img 
-                src={user?.imageUrl || `https://ui-avatars.com/api/?name=${user?.firstName || 'User'}&background=random`} 
+                src={`https://ui-avatars.com/api/?name=${user?.username || 'User'}&background=random`} 
                 alt="Profile" 
                 className="h-8 w-8 rounded-full object-cover"
               />
               <span className="hidden md:block text-sm font-medium text-gray-700">
-                {user?.firstName || user?.username || 'User'}
+                {user?.username || 'User'}
               </span>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -47,15 +39,22 @@ export default function Header() {
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem className="cursor-pointer">Profile</DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">Account</DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">
+              <UserIcon className="mr-2 h-4 w-4" />
+              <span>{user?.username || 'User'}</span>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-red-600" onClick={() => {
-              // In dev mode, just refresh the page
-              if (DEV_MODE) {
-                window.location.reload();
-              }
-            }}>
+            <DropdownMenuItem 
+              className="cursor-pointer text-red-600" 
+              onClick={() => {
+                logoutMutation.mutate();
+                toast({
+                  title: "Logging out...",
+                  description: "You will be redirected to the login page.",
+                });
+              }}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
               Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
