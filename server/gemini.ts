@@ -77,16 +77,22 @@ export async function generateHealthAdvice(userQuestion: string, userProfile?: {
   `;
   
   try {
+    console.log('Attempting to generate health advice with Gemini API...');
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
+    console.log('Successfully generated health advice from Gemini API');
     
     return {
       response: text.trim()
     };
   } catch (error) {
-    console.error('Error generating health advice:', error);
-    throw new Error('Failed to generate health advice');
+    console.error('Error generating health advice with Gemini API:', error);
+    console.error('This could be due to an invalid API key or network connectivity issues');
+    // Return a more helpful error message that doesn't use mock data
+    return {
+      response: "I couldn't process your request due to a technical issue. Please try again later or contact support if the problem persists."
+    };
   }
 }
 
@@ -133,9 +139,11 @@ export async function generateFitnessSuggestion(
   `;
 
   try {
+    console.log('Attempting to generate fitness suggestion with Gemini API...');
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
+    console.log('Successfully generated fitness suggestion from Gemini API');
     
     // Parse the response to extract suggestions and goals
     const lines = text.split('\n').filter(line => line.trim() !== '');
@@ -162,7 +170,13 @@ export async function generateFitnessSuggestion(
       goals
     };
   } catch (error) {
-    console.error('Error generating fitness suggestion:', error);
-    throw new Error('Failed to generate fitness suggestion');
+    console.error('Error generating fitness suggestion with Gemini API:', error);
+    console.error('This could be due to an invalid API key or network connectivity issues');
+    
+    // Return a user-friendly error message
+    return {
+      suggestion: "Unable to generate a personalized suggestion at this time. Please try again later.",
+      goals: ["Check your network connection", "Try refreshing the page"]
+    };
   }
 }

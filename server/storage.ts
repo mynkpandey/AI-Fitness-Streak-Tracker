@@ -641,7 +641,9 @@ export class MemStorage implements IStorage {
 }
 
 // Create and export storage instance
+// Force use of in-memory storage for local development
 const uri = process.env.MONGODB_URI;
-export const storage = uri 
-  ? new MongoStorage(uri) 
-  : new MemStorage();
+console.log("MongoDB URI:", uri ? "Found" : "Not found");
+
+// Use in-memory storage for easy local development
+export const storage = new MemStorage();

@@ -10,7 +10,7 @@ const DEV_MODE = process.env.NODE_ENV !== "production";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
-  app.post("/api/register", async (req, res) => {
+  app.post("/api/auth/register", async (req, res) => {
     try {
       // Validate request body
       const validatedData = insertUserSchema.parse(req.body);
@@ -41,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/login", async (req, res) => {
+  app.post("/api/auth/login", async (req, res) => {
     try {
       // Validate request body
       const validatedData = loginUserSchema.parse(req.body);
@@ -72,7 +72,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/logout", (req, res) => {
+  app.post("/api/auth/logout", (req, res) => {
     // Destroy session
     req.session.destroy((err) => {
       if (err) {
