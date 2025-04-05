@@ -1,10 +1,28 @@
 import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { storage } from "./storage";
 
+// Create Express app
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Set up session middleware
+const isProduction = process.env.NODE_ENV === "production";
+app.use(session({
+  secret: process.env.SESSION_SECRET || "local-dev-secret",
+  resave: false,
+  saveUninitialized: false,
+  store: storage.sessionStore,
+  cookie: {
+    secure: isProduction, // only use secure cookies in production
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    httpOnly: true,
+    sameSite: isProduction ? "strict" : "lax",
+  }
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();

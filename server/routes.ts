@@ -1,21 +1,86 @@
-import type { Express, Request } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { requireAuth, getUserId } from "./auth";
+import { requireAuth, getUserId, hashPassword, comparePasswords } from "./auth";
 import { generateFitnessSuggestion } from "./gemini";
-import { insertUserSchema, insertActivitySchema } from "@shared/schema";
-import { ClerkExpressWithAuth } from "@clerk/clerk-sdk-node";
+import { insertUserSchema, insertActivitySchema, loginUserSchema } from "@shared/schema";
 
-// TEMPORARY: Development mode flag to bypass Clerk authentication
-const DEV_MODE = true;
+// Development mode flag
+const DEV_MODE = process.env.NODE_ENV !== "production";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Initialize Clerk middleware (only if not in dev mode)
-  if (!DEV_MODE) {
-    const clerkMiddleware = ClerkExpressWithAuth();
-    // Add Clerk authentication middleware to all API routes
-    app.use("/api", clerkMiddleware);
-  }
+  // Authentication routes
+  app.post("/api/register", async (req, res) => {
+    try {
+      // Validate request body
+      const validatedData = insertUserSchema.parse(req.body);
+      
+      // Hash the password
+      const hashedPassword = await hashPassword(validatedData.password);
+      
+      // Create user with hashed password
+      const user = await storage.createUser({
+        ...validatedData,
+        password: hashedPassword
+      });
+      
+      // Set up session
+      req.session.userId = user.id;
+      
+      // Return user data (excluding password)
+      const { password, ...userWithoutPassword } = user;
+      res.status(201).json(userWithoutPassword);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ error: "Invalid user data", details: error.errors });
+      }
+      if (error.message === "Username already exists") {
+        return res.status(409).json({ error: error.message });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.post("/api/login", async (req, res) => {
+    try {
+      // Validate request body
+      const validatedData = loginUserSchema.parse(req.body);
+      
+      // Find user by username
+      const user = await storage.getUserByUsername(validatedData.username);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+      
+      // Compare passwords
+      const passwordMatch = await comparePasswords(validatedData.password, user.password);
+      if (!passwordMatch) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+      
+      // Set up session
+      req.session.userId = user.id;
+      
+      // Return user data (excluding password)
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ error: "Invalid login data", details: error.errors });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  app.post("/api/logout", (req, res) => {
+    // Destroy session
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Failed to logout" });
+      }
+      res.sendStatus(200);
+    });
+  });
   
   // User routes
   app.get("/api/user", requireAuth, async (req, res) => {
@@ -23,22 +88,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserId(req);
       
       // Get user from storage
-      let user = await storage.getUser(userId);
+      const user = await storage.getUser(userId);
       
-      // If user doesn't exist, create a new one
       if (!user) {
-        // When in dev mode, use mock user data
-        user = await storage.createUser({
-          id: userId,
-          username: DEV_MODE ? 'Dev User' : ((req as any).auth?.username || 'User'),
-          bestStreak: 0,
-          currentStreak: 0,
-          totalWorkouts: 0,
-          lastWorkoutDate: null
-        });
+        return res.status(404).json({ error: "User not found" });
       }
       
-      res.json(user);
+      // Return user data (excluding password)
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

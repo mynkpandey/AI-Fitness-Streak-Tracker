@@ -2,10 +2,12 @@ import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// User schema (extends Clerk's user data)
+// User schema with custom authentication
 export const users = pgTable("users", {
-  id: text("id").primaryKey(), // this will be the Clerk user ID
-  username: text("username").notNull(),
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  email: text("email").unique(),
   bestStreak: integer("best_streak").default(0),
   currentStreak: integer("current_streak").default(0),
   totalWorkouts: integer("total_workouts").default(0),
@@ -14,16 +16,36 @@ export const users = pgTable("users", {
 });
 
 export type User = typeof users.$inferSelect;
-export type InsertUser = Omit<User, "createdAt">;
+export type InsertUser = {
+  username: string;
+  password: string;
+  email?: string | null;
+  bestStreak?: number | null;
+  currentStreak?: number | null;
+  totalWorkouts?: number | null;
+  lastWorkoutDate?: Date | null;
+  id?: number;
+};
 
-export const insertUserSchema = createInsertSchema(users).omit({
-  createdAt: true,
+// Add validation for user registration
+export const insertUserSchema = createInsertSchema(users)
+  .omit({ createdAt: true })
+  .extend({
+    username: z.string().min(3).max(50),
+    password: z.string().min(6),
+    email: z.string().email().optional(),
+  });
+
+// Create a login schema
+export const loginUserSchema = z.object({
+  username: z.string().min(3).max(50),
+  password: z.string().min(6),
 });
 
 // Activity schema
 export const activities = pgTable("activities", {
   id: serial("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   type: text("type").notNull(), // e.g., running, cycling, yoga, etc.
   duration: integer("duration").notNull(), // in minutes
   notes: text("notes"),
@@ -33,7 +55,15 @@ export const activities = pgTable("activities", {
 });
 
 export type Activity = typeof activities.$inferSelect;
-export type InsertActivity = Omit<Activity, "id">;
+export type InsertActivity = {
+  userId: number;
+  type: string;
+  duration: number;
+  notes?: string | null;
+  date?: Date | null;
+  streakDay?: number | null;
+  completed?: boolean | null;
+};
 
 export const insertActivitySchema = createInsertSchema(activities).omit({
   id: true,
@@ -42,7 +72,7 @@ export const insertActivitySchema = createInsertSchema(activities).omit({
 // AI Suggestion schema
 export const suggestions = pgTable("suggestions", {
   id: serial("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   suggestion: text("suggestion").notNull(),
   goals: jsonb("goals").$type<string[]>(),
   date: timestamp("date").defaultNow(),

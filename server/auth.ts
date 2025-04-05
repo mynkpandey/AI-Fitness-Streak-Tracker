@@ -1,43 +1,76 @@
-import { ClerkExpressRequireAuth } from '@clerk/clerk-sdk-node';
 import { Request, Response, NextFunction } from 'express';
+import { scrypt, randomBytes, timingSafeEqual } from 'crypto';
+import { promisify } from 'util';
+import { storage } from './storage';
+import session from 'express-session';
 
-// TEMPORARY: Development mode flag to bypass Clerk authentication
-const DEV_MODE = true;
-const DEV_USER_ID = "user_dev123456";
+// Extend session type definitions
+declare module 'express-session' {
+  interface SessionData {
+    userId: number;
+  }
+}
 
-// Helper function to extract user ID from Clerk auth
-export const getUserId = (req: any): string => {
-  if (DEV_MODE) {
-    return DEV_USER_ID;
+const scryptAsync = promisify(scrypt);
+
+// Development mode flag for easy testing
+const DEV_MODE = process.env.NODE_ENV !== 'production';
+
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: number;
+      user?: any;
+    }
+  }
+}
+
+/**
+ * Hashes a password for secure storage
+ */
+export async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16).toString('hex');
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString('hex')}.${salt}`;
+}
+
+/**
+ * Compares a supplied plain text password to a stored hashed password
+ */
+export async function comparePasswords(supplied: string, stored: string): Promise<boolean> {
+  const [hashed, salt] = stored.split('.');
+  const hashedBuf = Buffer.from(hashed, 'hex');
+  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return timingSafeEqual(hashedBuf, suppliedBuf);
+}
+
+/**
+ * Gets the user ID from the request object
+ */
+export const getUserId = (req: Request): number => {
+  if (DEV_MODE && !req.userId) {
+    // Return a development user ID for testing
+    return 1;
   }
   
-  if (!req.auth || !req.auth.userId) {
+  if (!req.userId) {
     throw new Error('Unauthorized: User not authenticated');
   }
-  return req.auth.userId;
+  
+  return req.userId;
 };
 
-// Development mode middleware to bypass authentication
-const devModeAuth = (req: Request, res: Response, next: NextFunction) => {
-  // Add mock auth data to the request
-  (req as any).auth = {
-    userId: DEV_USER_ID,
-    sessionId: 'session_dev',
-    getToken: () => 'dev_token'
-  };
+/**
+ * Middleware to check if the user is authenticated
+ */
+export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  // Check if user is authenticated via session
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  
+  // Add user ID to request for later use
+  req.userId = req.session.userId;
+  
   next();
 };
-
-// Middleware to require authentication
-export const requireAuth = DEV_MODE 
-  ? devModeAuth 
-  : ClerkExpressRequireAuth({
-      // Function to handle unauthorized requests
-      onError: (err) => {
-        console.error('Authentication error:', err);
-        return {
-          status: 401,
-          message: 'Authentication required'
-        };
-      }
-    });

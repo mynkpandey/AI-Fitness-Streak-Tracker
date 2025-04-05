@@ -2,79 +2,59 @@ import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { queryClient } from "./lib/queryClient";
-import { ClerkProvider } from "@clerk/clerk-react";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Stats from "@/pages/stats";
 import Insights from "@/pages/insights";
 import Settings from "@/pages/settings";
-import { AuthScreen } from "@/components/auth/auth-screen";
-import { useAuth } from "@/hooks/use-auth";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import BottomNav from "@/components/layout/bottom-nav";
 import Header from "@/components/layout/header";
+import { Loader2 } from "lucide-react";
+import { ProtectedRoute } from "@/lib/protected-route";
 
-// Initialize Clerk with publishable key from environment variables
-// For debugging purposes, console log all environment variables
-console.log("Environment variables:", import.meta.env);
-// Ensure we have a valid publishable key, with a fallback for development
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || import.meta.env.CLERK_PUBLISHABLE_KEY || "pk_test_dWx0aW1hdGUtam9leS05NS5jbGVyay5hY2NvdW50cy5kZXYk";
+// Auth page
+import AuthPage from "@/pages/auth-page";
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <div id="app" className="min-h-screen flex flex-col">
+          <AppRoutes />
+        </div>
+        <Toaster />
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
 
 function AppRoutes() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return <AuthScreen />;
-  }
-
   return (
-    <div className="flex-1 flex flex-col pb-16">
-      <Header />
-      <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/stats" component={Stats} />
-        <Route path="/insights" component={Insights} />
-        <Route path="/settings" component={Settings} />
-        <Route component={NotFound} />
-      </Switch>
-      <BottomNav />
-    </div>
-  );
-}
-
-// TEMPORARY: Development mode flag to bypass Clerk authentication
-const DEV_MODE = true;
-
-function App() {
-  // In dev mode, skip Clerk provider
-  if (DEV_MODE) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <div id="app" className="min-h-screen flex flex-col">
-          <AppRoutes />
-        </div>
-        <Toaster />
-      </QueryClientProvider>
-    );
-  }
-  
-  // Normal flow with Clerk authentication
-  return (
-    <ClerkProvider publishableKey={clerkPubKey}>
-      <QueryClientProvider client={queryClient}>
-        <div id="app" className="min-h-screen flex flex-col">
-          <AppRoutes />
-        </div>
-        <Toaster />
-      </QueryClientProvider>
-    </ClerkProvider>
+    <>
+      {user && <Header />}
+      <div className={`flex-1 flex flex-col ${user ? 'pb-16' : ''}`}>
+        <Switch>
+          <Route path="/auth" component={AuthPage} />
+          <ProtectedRoute path="/" component={Dashboard} />
+          <ProtectedRoute path="/stats" component={Stats} />
+          <ProtectedRoute path="/insights" component={Insights} />
+          <ProtectedRoute path="/settings" component={Settings} />
+          <Route component={NotFound} />
+        </Switch>
+      </div>
+      {user && <BottomNav />}
+    </>
   );
 }
 
