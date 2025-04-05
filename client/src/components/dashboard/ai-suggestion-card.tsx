@@ -75,7 +75,18 @@ export function AISuggestionCard() {
         <Button 
           variant="default" 
           className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition"
-          onClick={() => suggestion && useSuggestionMutation.mutate(suggestion.id)}
+          onClick={() => {
+            // First mark the suggestion as used
+            if (suggestion && suggestion.id) {
+              useSuggestionMutation.mutate(suggestion.id);
+            }
+            
+            // Trigger the add activity modal by clicking the button from the navigation bar
+            const addActivityButton = document.querySelector('.add-activity-button');
+            if (addActivityButton) {
+              (addActivityButton as HTMLButtonElement).click();
+            }
+          }}
           disabled={useSuggestionMutation.isPending}
         >
           Get Workout
