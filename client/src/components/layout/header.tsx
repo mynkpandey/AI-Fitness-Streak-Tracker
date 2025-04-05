@@ -1,4 +1,3 @@
-import { useUser } from "@clerk/clerk-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -7,11 +6,20 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { ShieldCheck } from "lucide-react";
-import { useClerk } from "@clerk/clerk-react";
+
+// TEMPORARY: Development mode flag to bypass Clerk authentication
+const DEV_MODE = true;
 
 export default function Header() {
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  // Mock user for development
+  const mockUser = {
+    imageUrl: null,
+    firstName: "Dev",
+    username: "User",
+  };
+  
+  // Use mock user in development mode
+  const user = DEV_MODE ? mockUser : null;
 
   return (
     <header className="bg-white shadow-sm">
@@ -42,7 +50,12 @@ export default function Header() {
             <DropdownMenuItem className="cursor-pointer">Profile</DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer">Account</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-red-600" onClick={() => signOut()}>
+            <DropdownMenuItem className="cursor-pointer text-red-600" onClick={() => {
+              // In dev mode, just refresh the page
+              if (DEV_MODE) {
+                window.location.reload();
+              }
+            }}>
               Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>

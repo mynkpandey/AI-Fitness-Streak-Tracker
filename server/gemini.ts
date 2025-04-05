@@ -27,14 +27,25 @@ const modelConfig = {
   ],
 };
 
+// TEMPORARY: Development mode flag
+const DEV_MODE = true;
+
 // Function to generate fitness suggestions based on user data
 export async function generateFitnessSuggestion(
   recentActivities: Array<{type: string, duration: number, date: Date | null}>,
   currentStreak: number,
   totalWorkouts: number
 ) {
-  if (!apiKey) {
-    throw new Error('Gemini API key not configured');
+  // In dev mode, return mock suggestions
+  if (DEV_MODE || !apiKey) {
+    console.log('Using mock suggestions for development mode');
+    return {
+      suggestion: "Try a 30-minute HIIT workout today to boost your metabolism and build endurance.",
+      goals: [
+        "Complete 3 HIIT workouts this week",
+        "Increase workout duration by 5 minutes each session"
+      ]
+    };
   }
 
   const model = genAI.getGenerativeModel(modelConfig);

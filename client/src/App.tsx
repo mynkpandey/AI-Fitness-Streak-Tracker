@@ -49,7 +49,23 @@ function AppRoutes() {
   );
 }
 
+// TEMPORARY: Development mode flag to bypass Clerk authentication
+const DEV_MODE = true;
+
 function App() {
+  // In dev mode, skip Clerk provider
+  if (DEV_MODE) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <div id="app" className="min-h-screen flex flex-col">
+          <AppRoutes />
+        </div>
+        <Toaster />
+      </QueryClientProvider>
+    );
+  }
+  
+  // Normal flow with Clerk authentication
   return (
     <ClerkProvider publishableKey={clerkPubKey}>
       <QueryClientProvider client={queryClient}>

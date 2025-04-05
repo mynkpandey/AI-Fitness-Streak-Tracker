@@ -103,11 +103,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getUserId(req);
       
-      // Validate the request body
-      const validatedData = insertActivitySchema.parse({
+      // Add current date if none is provided
+      const requestData = {
         ...req.body,
-        userId
-      });
+        userId,
+        date: req.body.date || new Date()
+      };
+      
+      // Validate the request body
+      const validatedData = insertActivitySchema.parse(requestData);
       
       const activity = await storage.createActivity(validatedData);
       res.status(201).json(activity);
