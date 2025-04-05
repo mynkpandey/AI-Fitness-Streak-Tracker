@@ -281,8 +281,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Delete user data route
-  app.delete("/api/users/:id/data", requireAuth, async (req, res) => {
+  // Delete user account route
+  app.delete("/api/users/:id", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
       const requestedId = req.params.id;
@@ -295,39 +295,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // For MongoDB, log user info to help with debugging
-      console.log(`User data delete request - Session userId: ${userId}`);
+      console.log(`User account deletion request - Session userId: ${userId}`);
       console.log(`Authenticated user:`, authenticatedUser);
       console.log(`Requested ID to delete: ${requestedId}`);
       
-      // In MongoDB implementation we're using sessions, so only allow deletion of the logged-in user's data
-      // Skip the ID comparison check
+      // In MongoDB implementation we're using sessions, so only allow deletion of the logged-in user's account
+      // Step 1: Delete all user activities
+      await storage.deleteActivitiesByUserId(userId);
+      console.log(`Deleted activities for user ${userId}`);
       
-      // Delete all user activities
-      const activities = await storage.getActivities(userId, 9999);
-      console.log(`Deleting ${activities.length} activities for user ${userId}`);
+      // Step 2: Delete all user suggestions
+      await storage.deleteSuggestionsByUserId(userId);
+      console.log(`Deleted suggestions for user ${userId}`);
       
-      // Delete all user suggestions
-      const suggestion = await storage.getLatestSuggestion(userId);
-      if (suggestion) {
-        console.log(`Deleting suggestion for user ${userId}`);
-        await storage.markSuggestionAsUsed(suggestion.id);
+      // Step 3: Delete the user account itself
+      const deleteResult = await storage.deleteUser(userId);
+      console.log(`Deleted user account: ${deleteResult ? "Success" : "Failed"}`);
+      
+      if (!deleteResult) {
+        return res.status(404).json({ error: "Failed to delete user account" });
       }
       
-      // Reset user streak and stats
-      const updatedUser = await storage.updateUser(userId, {
-        bestStreak: 0,
-        currentStreak: 0,
-        totalWorkouts: 0,
-        lastWorkoutDate: null
+      // Return success response
+      res.json({ 
+        success: true, 
+        message: "Account completely deleted" 
       });
-      
-      if (!updatedUser) {
-        return res.status(404).json({ error: "User not found" });
-      }
-      
-      res.json({ success: true, message: "User data deleted successfully" });
     } catch (error: any) {
-      console.error("Error deleting user data:", error);
+      console.error("Error deleting user account:", error);
       res.status(500).json({ error: error.message });
     }
   });

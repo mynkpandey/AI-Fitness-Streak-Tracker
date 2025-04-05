@@ -12,12 +12,14 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
+  deleteUser(id: number): Promise<boolean>; // New method to delete a user
   
   // Activity operations
   getActivities(userId: number, limit?: number): Promise<Activity[]>;
   getActivitiesByDateRange(userId: number, startDate: Date, endDate: Date): Promise<Activity[]>;
   getActivity(id: number): Promise<Activity | undefined>;
   createActivity(activity: InsertActivity): Promise<Activity>;
+  deleteActivitiesByUserId(userId: number): Promise<boolean>; // New method to delete user's activities
   
   // Streak operations
   updateStreak(userId: number): Promise<{ currentStreak: number, bestStreak: number }>;
@@ -27,6 +29,7 @@ export interface IStorage {
   getLatestSuggestion(userId: number): Promise<Suggestion | undefined>;
   createSuggestion(suggestion: InsertSuggestion): Promise<Suggestion>;
   markSuggestionAsUsed(id: number): Promise<Suggestion | undefined>;
+  deleteSuggestionsByUserId(userId: number): Promise<boolean>; // New method to delete user's suggestions
   
   // Authentication
   sessionStore: any;
@@ -120,6 +123,21 @@ export class MongoStorage implements IStorage {
       { returnDocument: 'after' }
     );
     return result || undefined;
+  }
+  
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await this.db.collection("users").deleteOne({ id });
+    return result.deletedCount > 0;
+  }
+  
+  async deleteActivitiesByUserId(userId: number): Promise<boolean> {
+    const result = await this.db.collection("activities").deleteMany({ userId });
+    return result.deletedCount > 0;
+  }
+  
+  async deleteSuggestionsByUserId(userId: number): Promise<boolean> {
+    const result = await this.db.collection("suggestions").deleteMany({ userId });
+    return result.deletedCount > 0;
   }
   
   // Activity operations
@@ -393,6 +411,47 @@ export class MemStorage implements IStorage {
     const updatedUser = { ...user, ...updates };
     this.users.set(id, updatedUser);
     return updatedUser;
+  }
+  
+  async deleteUser(id: number): Promise<boolean> {
+    if (!this.users.has(id)) return false;
+    
+    const user = this.users.get(id);
+    if (user) {
+      // Remove from username index
+      this.usernameIndex.delete(user.username);
+    }
+    
+    // Delete the user
+    return this.users.delete(id);
+  }
+  
+  async deleteActivitiesByUserId(userId: number): Promise<boolean> {
+    let deleted = false;
+    
+    // Find all activities for the user
+    for (const [activityId, activity] of this.activities.entries()) {
+      if (activity.userId === userId) {
+        this.activities.delete(activityId);
+        deleted = true;
+      }
+    }
+    
+    return deleted;
+  }
+  
+  async deleteSuggestionsByUserId(userId: number): Promise<boolean> {
+    let deleted = false;
+    
+    // Find all suggestions for the user
+    for (const [suggestionId, suggestion] of this.suggestions.entries()) {
+      if (suggestion.userId === userId) {
+        this.suggestions.delete(suggestionId);
+        deleted = true;
+      }
+    }
+    
+    return deleted;
   }
 
   // Activity operations

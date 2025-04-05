@@ -24,11 +24,11 @@ export default function Settings() {
       setIsDeleting(true);
       // In MongoDB, we can just use the authenticated session, so pass the user.id
       // The server will use the session userId to perform the action
-      await apiRequest("DELETE", `/api/users/${user.id}/data`);
+      await apiRequest("DELETE", `/api/users/${user.id}`);
       
       toast({
-        title: "Account data deleted",
-        description: "All your activities and data have been successfully deleted.",
+        title: "Account deleted",
+        description: "Your account and all associated data have been permanently deleted.",
       });
       
       setDeleteDialogOpen(false);
@@ -36,10 +36,10 @@ export default function Settings() {
       // Logout the user after data deletion
       logoutMutation.mutate();
     } catch (error) {
-      console.error("Error deleting account data:", error);
+      console.error("Error deleting account:", error);
       toast({
         title: "Error",
-        description: "Failed to delete account data. Please try again.",
+        description: "Failed to delete your account. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -187,7 +187,7 @@ export default function Settings() {
                 onClick={() => setDeleteDialogOpen(true)}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete Account Data
+                Delete Account
               </Button>
             </div>
             
@@ -196,15 +196,15 @@ export default function Settings() {
                 <DialogHeader>
                   <DialogTitle className="text-destructive flex items-center">
                     <Trash2 className="h-5 w-5 mr-2" />
-                    Delete Account Data
+                    Delete Account
                   </DialogTitle>
                   <DialogDescription>
-                    This will permanently delete all your activities, streaks, and personal data. This action cannot be undone.
+                    This will permanently delete your account and all your data. This action cannot be undone.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
                   <p className="text-sm text-gray-500">
-                    Your account will remain active, but all your progress and history will be removed.
+                    Your account and all associated data will be completely removed from our system.
                   </p>
                 </div>
                 <DialogFooter>
@@ -225,7 +225,7 @@ export default function Settings() {
                         Deleting...
                       </>
                     ) : (
-                      "Delete Data"
+                      "Delete Account"
                     )}
                   </Button>
                 </DialogFooter>
