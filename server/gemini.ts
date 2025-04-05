@@ -29,7 +29,7 @@ const modelConfig = {
 
 // Function to generate fitness suggestions based on user data
 export async function generateFitnessSuggestion(
-  recentActivities: Array<{type: string, duration: number, date: Date}>,
+  recentActivities: Array<{type: string, duration: number, date: Date | null}>,
   currentStreak: number,
   totalWorkouts: number
 ) {
@@ -46,7 +46,10 @@ export async function generateFitnessSuggestion(
   that would be appropriate for this user.
 
   Recent Activities:
-  ${recentActivities.map(a => `- ${a.type} (${a.duration} minutes) on ${new Date(a.date).toLocaleDateString()}`).join('\n')}
+  ${recentActivities.map(a => {
+    const dateStr = a.date ? new Date(a.date).toLocaleDateString() : 'today';
+    return `- ${a.type} (${a.duration} minutes) on ${dateStr}`;
+  }).join('\n')}
 
   Current Streak: ${currentStreak} days
   Total Workouts: ${totalWorkouts}

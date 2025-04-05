@@ -3,7 +3,25 @@ import { useUser, useAuth as useClerkAuth } from "@clerk/clerk-react";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 
+// TEMPORARY: Development mode flag to bypass Clerk authentication
+const DEV_MODE = true;
+
 export function useAuth() {
+  // If in dev mode, use mock authentication
+  if (DEV_MODE) {
+    return {
+      isAuthenticated: true,
+      isLoading: false,
+      user: {
+        id: "user_dev123456",
+        username: "DevUser",
+        firstName: "Dev",
+        primaryEmailAddress: { emailAddress: "dev@example.com" }
+      },
+    };
+  }
+
+  // Normal Clerk authentication flow
   const { isLoaded, isSignedIn } = useClerkAuth();
   const { user } = useUser();
   const [isInitialized, setIsInitialized] = useState(false);

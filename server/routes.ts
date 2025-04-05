@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { requireAuth, getUserId } from "./auth";
@@ -6,12 +6,16 @@ import { generateFitnessSuggestion } from "./gemini";
 import { insertUserSchema, insertActivitySchema } from "@shared/schema";
 import { ClerkExpressWithAuth } from "@clerk/clerk-sdk-node";
 
+// TEMPORARY: Development mode flag to bypass Clerk authentication
+const DEV_MODE = true;
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Initialize Clerk middleware
-  const clerkMiddleware = ClerkExpressWithAuth();
-  
-  // Add Clerk authentication middleware to all API routes
-  app.use("/api", clerkMiddleware);
+  // Initialize Clerk middleware (only if not in dev mode)
+  if (!DEV_MODE) {
+    const clerkMiddleware = ClerkExpressWithAuth();
+    // Add Clerk authentication middleware to all API routes
+    app.use("/api", clerkMiddleware);
+  }
   
   // User routes
   app.get("/api/user", requireAuth, async (req, res) => {
@@ -23,13 +27,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If user doesn't exist, create a new one
       if (!user) {
-        const clerkUser = req.auth;
+        // When in dev mode, use mock user data
         user = await storage.createUser({
           id: userId,
-          username: clerkUser.username || clerkUser.firstName || 'User',
+          username: DEV_MODE ? 'Dev User' : ((req as any).auth?.username || 'User'),
           bestStreak: 0,
           currentStreak: 0,
-          totalWorkouts: 0
+          totalWorkouts: 0,
+          lastWorkoutDate: null
         });
       }
       
@@ -72,12 +77,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const weeklyActivities = Array(7).fill(null);
       
       activities.forEach(activity => {
-        const activityDate = new Date(activity.date);
-        const dayOfWeek = activityDate.getDay(); // 0 = Sunday, 6 = Saturday
-        
-        // If there's already an activity for this day, keep the first one
-        if (!weeklyActivities[dayOfWeek]) {
-          weeklyActivities[dayOfWeek] = activity;
+        if (activity.date) {
+          const activityDate = new Date(activity.date);
+          const dayOfWeek = activityDate.getDay(); // 0 = Sunday, 6 = Saturday
+          
+          // If there's already an activity for this day, keep the first one
+          if (!weeklyActivities[dayOfWeek]) {
+            weeklyActivities[dayOfWeek] = activity;
+          }
         }
       });
       
