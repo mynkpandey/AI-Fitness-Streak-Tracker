@@ -280,6 +280,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
+  
+  // Delete user data route
+  app.delete("/api/users/:id/data", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const requestedUserId = parseInt(req.params.id);
+      
+      // Security check: only allow deletion of own data
+      if (userId !== requestedUserId) {
+        return res.status(403).json({ error: "You can only delete your own data" });
+      }
+      
+      // Delete all user activities
+      const activities = await storage.getActivities(userId, 9999);
+      console.log(`Deleting ${activities.length} activities for user ${userId}`);
+      
+      // Delete all user suggestions
+      const suggestion = await storage.getLatestSuggestion(userId);
+      if (suggestion) {
+        console.log(`Deleting suggestion for user ${userId}`);
+        await storage.markSuggestionAsUsed(suggestion.id);
+      }
+      
+      // Reset user streak and stats
+      const user = await storage.updateUser(userId, {
+        bestStreak: 0,
+        currentStreak: 0,
+        totalWorkouts: 0,
+        lastWorkoutDate: null
+      });
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      res.json({ success: true, message: "User data deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting user data:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

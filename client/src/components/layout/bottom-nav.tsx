@@ -27,7 +27,7 @@ export default function BottomNav() {
             </Link>
             
             <button 
-              className="flex flex-col items-center py-2 px-3"
+              className="flex flex-col items-center py-2 px-3 add-activity-button"
               onClick={() => setIsModalOpen(true)}
             >
               <div className="bg-accent rounded-full p-1 -mt-6 shadow-lg">

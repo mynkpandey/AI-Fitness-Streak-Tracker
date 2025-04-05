@@ -3,12 +3,47 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Bell, User, Shield, HelpCircle, Loader2 } from "lucide-react";
+import { 
+  AlertCircle, Bell, User, Shield, HelpCircle, Loader2, Trash2
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState } from "react";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Settings() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  async function handleDeleteAccount() {
+    if (!user) return;
+    
+    try {
+      setIsDeleting(true);
+      await apiRequest("DELETE", `/api/users/${user.id}/data`);
+      
+      toast({
+        title: "Account data deleted",
+        description: "All your activities and data have been successfully deleted.",
+      });
+      
+      setDeleteDialogOpen(false);
+      
+      // Logout the user after data deletion
+      logoutMutation.mutate();
+    } catch (error) {
+      console.error("Error deleting account data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete account data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   return (
     <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">
@@ -144,10 +179,56 @@ export default function Settings() {
             </div>
             
             <div className="pt-2">
-              <Button variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50">
+              <Button 
+                variant="outline" 
+                className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
                 Delete Account Data
               </Button>
             </div>
+            
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle className="text-destructive flex items-center">
+                    <Trash2 className="h-5 w-5 mr-2" />
+                    Delete Account Data
+                  </DialogTitle>
+                  <DialogDescription>
+                    This will permanently delete all your activities, streaks, and personal data. This action cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <p className="text-sm text-gray-500">
+                    Your account will remain active, but all your progress and history will be removed.
+                  </p>
+                </div>
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setDeleteDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    variant="destructive"
+                    onClick={handleDeleteAccount}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete Data"
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
         

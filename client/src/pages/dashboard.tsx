@@ -9,7 +9,7 @@ import { ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Dashboard() {
-  const { data: activities, isLoading: isActivitiesLoading } = useQuery({
+  const { data: activities, isLoading: isActivitiesLoading } = useQuery<any[]>({
     queryKey: ["/api/activities"],
   });
 
@@ -71,6 +71,13 @@ export default function Dashboard() {
               <Button 
                 variant="default" 
                 className="mt-4 bg-primary hover:bg-blue-600 text-white"
+                onClick={() => {
+                  // Import these at the top of the file
+                  const bottomNav = document.querySelector('.add-activity-button');
+                  if (bottomNav) {
+                    (bottomNav as HTMLButtonElement).click();
+                  }
+                }}
               >
                 Add Your First Activity
               </Button>
