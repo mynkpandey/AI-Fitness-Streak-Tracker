@@ -3,13 +3,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AISuggestionCard } from "@/components/dashboard/ai-suggestion-card";
-import { BarChart, TrendingUp, Award, Calendar, Lightbulb, Send, MessageCircle, Loader2 } from "lucide-react";
+import { BarChart as BarChartIcon, TrendingUp, Award, Calendar, Lightbulb, Send, MessageCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useRef, useEffect } from "react";
 import { getHealthAdvice } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Activity, User } from "@shared/schema";
+import { 
+  ChartContainer, 
+  ChartTooltip, 
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent
+} from "@/components/ui/chart";
+import { 
+  ResponsiveContainer, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip,
+  LineChart,
+  Line
+} from "recharts";
 
 // Message type for chat
 type Message = {
@@ -175,7 +193,7 @@ export default function Insights() {
     const dayCount = [0, 0, 0, 0, 0, 0, 0]; // Sun to Sat
     
     activities.forEach(activity => {
-      const date = new Date(activity.date);
+      const date = new Date(activity.date || new Date());
       const day = date.getDay();
       dayCount[day]++;
     });
@@ -185,6 +203,41 @@ export default function Insights() {
     
     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     return maxCount > 0 ? days[maxDay] : "N/A";
+  };
+  
+  // Prepare activity data for charts
+  const getActivityChartData = () => {
+    if (!activities || activities.length === 0) return [];
+    
+    // Create a map of the last 7 days
+    const last7Days: {[key: string]: any} = {};
+    const today = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dateStr = date.toLocaleDateString('en-US', { weekday: 'short' });
+      last7Days[dateStr] = { day: dateStr, count: 0, duration: 0 };
+    }
+    
+    // Populate with activity data
+    activities.forEach(activity => {
+      const activityDate = new Date(activity.date || new Date());
+      // Only include activities from the last 7 days
+      const diffTime = Math.abs(today.getTime() - activityDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays <= 7) {
+        const dateStr = activityDate.toLocaleDateString('en-US', { weekday: 'short' });
+        if (last7Days[dateStr]) {
+          last7Days[dateStr].count += 1;
+          last7Days[dateStr].duration += activity.duration;
+        }
+      }
+    });
+    
+    // Convert to array for chart
+    return Object.values(last7Days);
   };
 
   return (
@@ -293,25 +346,92 @@ export default function Insights() {
         </TabsContent>
         
         <TabsContent value="trends" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Activity Trends</CardTitle>
-              <CardDescription>How your activities have changed over time</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-64 w-full" />
-              ) : activities && activities.length > 0 ? (
-                <div className="h-64 flex items-center justify-center">
-                  <p className="text-gray-500">Activity trends will appear here as you add more workouts.</p>
-                </div>
-              ) : (
-                <div className="h-64 flex items-center justify-center">
-                  <p className="text-gray-500">No activities recorded yet.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <BarChartIcon className="h-5 w-5 mr-2 text-primary" />
+                  Weekly Activity Count
+                </CardTitle>
+                <CardDescription>Number of workouts per day this week</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <Skeleton className="h-64 w-full" />
+                ) : activities && activities.length > 0 ? (
+                  <ChartContainer config={{ workout: { color: "hsl(var(--primary))" } }} className="h-64">
+                    <BarChart data={getActivityChartData()}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="day" />
+                      <YAxis allowDecimals={false} />
+                      <ChartTooltip 
+                        content={
+                          <ChartTooltipContent 
+                            labelKey="day"
+                            label="Workouts"
+                          />
+                        } 
+                      />
+                      <Bar 
+                        dataKey="count" 
+                        fill="hsl(var(--primary))" 
+                        radius={[4, 4, 0, 0]} 
+                        name="workout"
+                      />
+                    </BarChart>
+                  </ChartContainer>
+                ) : (
+                  <div className="h-64 flex items-center justify-center">
+                    <p className="text-gray-500">No activities recorded yet.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
+                  Weekly Duration Trend
+                </CardTitle>
+                <CardDescription>Minutes spent on workouts per day</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <Skeleton className="h-64 w-full" />
+                ) : activities && activities.length > 0 ? (
+                  <ChartContainer config={{ duration: { color: "#22c55e" } }} className="h-64">
+                    <LineChart data={getActivityChartData()}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="day" />
+                      <YAxis />
+                      <ChartTooltip 
+                        content={
+                          <ChartTooltipContent 
+                            labelKey="day"
+                            label="Duration"
+                          />
+                        } 
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="duration" 
+                        stroke="#22c55e" 
+                        strokeWidth={2}
+                        name="duration"
+                        dot={{ fill: "#22c55e", r: 4 }}
+                        activeDot={{ r: 6, fill: "#22c55e" }}
+                      />
+                    </LineChart>
+                  </ChartContainer>
+                ) : (
+                  <div className="h-64 flex items-center justify-center">
+                    <p className="text-gray-500">No activities recorded yet.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
         
         <TabsContent value="achievements" className="mt-4">
