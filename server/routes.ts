@@ -285,12 +285,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/users/:id/data", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req);
-      const requestedUserId = parseInt(req.params.id);
+      const requestedId = req.params.id;
       
-      // Security check: only allow deletion of own data
-      if (userId !== requestedUserId) {
-        return res.status(403).json({ error: "You can only delete your own data" });
+      // Get the authenticated user to compare properly
+      const authenticatedUser = await storage.getUser(userId);
+      
+      if (!authenticatedUser) {
+        return res.status(404).json({ error: "User not found" });
       }
+      
+      // For MongoDB, log user info to help with debugging
+      console.log(`User data delete request - Session userId: ${userId}`);
+      console.log(`Authenticated user:`, authenticatedUser);
+      console.log(`Requested ID to delete: ${requestedId}`);
+      
+      // In MongoDB implementation we're using sessions, so only allow deletion of the logged-in user's data
+      // Skip the ID comparison check
       
       // Delete all user activities
       const activities = await storage.getActivities(userId, 9999);
@@ -304,14 +314,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Reset user streak and stats
-      const user = await storage.updateUser(userId, {
+      const updatedUser = await storage.updateUser(userId, {
         bestStreak: 0,
         currentStreak: 0,
         totalWorkouts: 0,
         lastWorkoutDate: null
       });
       
-      if (!user) {
+      if (!updatedUser) {
         return res.status(404).json({ error: "User not found" });
       }
       

@@ -22,6 +22,8 @@ export default function Settings() {
     
     try {
       setIsDeleting(true);
+      // In MongoDB, we can just use the authenticated session, so pass the user.id
+      // The server will use the session userId to perform the action
       await apiRequest("DELETE", `/api/users/${user.id}/data`);
       
       toast({
