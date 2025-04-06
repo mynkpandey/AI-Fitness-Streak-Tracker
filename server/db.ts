@@ -1,15 +1,9 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import { MongoClient } from 'mongodb';
 import * as schema from "@shared/schema";
 
-neonConfig.webSocketConstructor = ws;
+// We're going to handle all database operations through the storage.ts file
+// This file is kept for compatibility with existing code
+console.log("MongoDB URI:", process.env.MONGODB_URI ? "Found" : "Not found");
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
-
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+// No export of db or pool as we're not using PostgreSQL anymore
+// MongoDB connection and operations are managed in storage.ts
