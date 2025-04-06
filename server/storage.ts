@@ -1,7 +1,7 @@
 import { 
-  users, type User, type InsertUser,
-  activities, type Activity, type InsertActivity,
-  suggestions, type Suggestion, type InsertSuggestion
+  type User, type InsertUser,
+  type Activity, type InsertActivity,
+  type Suggestion, type InsertSuggestion
 } from "@shared/schema";
 import { MongoClient } from "mongodb";
 import session from "express-session";

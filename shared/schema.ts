@@ -1,21 +1,18 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // User schema with custom authentication
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  email: text("email").unique(),
-  bestStreak: integer("best_streak").default(0),
-  currentStreak: integer("current_streak").default(0),
-  totalWorkouts: integer("total_workouts").default(0),
-  lastWorkoutDate: timestamp("last_workout_date"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+export type User = {
+  id: number;
+  username: string;
+  password: string;
+  email?: string | null;
+  bestStreak?: number;
+  currentStreak?: number;
+  totalWorkouts?: number;
+  lastWorkoutDate?: Date;
+  createdAt: Date;
+};
 
-export type User = typeof users.$inferSelect;
 export type InsertUser = {
   username: string;
   password: string;
@@ -28,13 +25,15 @@ export type InsertUser = {
 };
 
 // Add validation for user registration
-export const insertUserSchema = createInsertSchema(users)
-  .omit({ createdAt: true })
-  .extend({
-    username: z.string().min(3).max(50),
-    password: z.string().min(6),
-    email: z.string().email().optional(),
-  });
+export const insertUserSchema = z.object({
+  username: z.string().min(3).max(50),
+  password: z.string().min(6),
+  email: z.string().email().optional(),
+  bestStreak: z.number().optional().nullable(),
+  currentStreak: z.number().optional().nullable(),
+  totalWorkouts: z.number().optional().nullable(),
+  lastWorkoutDate: z.date().optional().nullable(),
+});
 
 // Create a login schema
 export const loginUserSchema = z.object({
@@ -43,18 +42,17 @@ export const loginUserSchema = z.object({
 });
 
 // Activity schema
-export const activities = pgTable("activities", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  type: text("type").notNull(), // e.g., running, cycling, yoga, etc.
-  duration: integer("duration").notNull(), // in minutes
-  notes: text("notes"),
-  date: timestamp("date").defaultNow(),
-  streakDay: integer("streak_day"),
-  completed: boolean("completed").default(true),
-});
+export type Activity = {
+  id: number;
+  userId: number;
+  type: string;
+  duration: number;
+  notes?: string | null;
+  date: Date;
+  streakDay?: number;
+  completed: boolean;
+};
 
-export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = {
   userId: number;
   type: string;
@@ -76,18 +74,21 @@ export const insertActivitySchema = z.object({
 });
 
 // AI Suggestion schema
-export const suggestions = pgTable("suggestions", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  suggestion: text("suggestion").notNull(),
-  goals: jsonb("goals").$type<string[]>(),
-  date: timestamp("date").defaultNow(),
-  used: boolean("used").default(false),
-});
+export type Suggestion = {
+  id: number;
+  userId: number;
+  suggestion: string;
+  goals?: string[];
+  date: Date;
+  used: boolean;
+};
 
-export type Suggestion = typeof suggestions.$inferSelect;
 export type InsertSuggestion = Omit<Suggestion, "id">;
 
-export const insertSuggestionSchema = createInsertSchema(suggestions).omit({
-  id: true,
+export const insertSuggestionSchema = z.object({
+  userId: z.number(),
+  suggestion: z.string(),
+  goals: z.array(z.string()).optional(),
+  date: z.date().optional(),
+  used: z.boolean().optional(),
 });
