@@ -63,32 +63,110 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    console.log("Starting server initialization...");
+    console.log("Environment:", process.env.NODE_ENV);
+    console.log("MongoDB URI exists:", !!process.env.MONGODB_URI);
+    
+    // Wait for MongoDB connection before proceeding
+    if (!process.env.MONGODB_URI) {
+      throw new Error("MONGODB_URI environment variable is required");
+    }
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    // Initialize storage and wait for connection
+    console.log("Initializing MongoDB connection...");
+    try {
+      await storage.waitForConnection();
+      console.log("MongoDB connection verified");
+    } catch (error) {
+      console.error("Failed to verify MongoDB connection:", error);
+      process.exit(1);
+    }
+    
+    const server = await registerRoutes(app);
+    console.log("Routes registered successfully");
 
-    res.status(status).json({ message });
-    throw err;
-  });
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      console.error("Error:", err);
+      res.status(status).json({ message });
+    });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    console.log("Setting up Vite middleware...");
+    if (app.get("env") === "development") {
+      try {
+        console.log("Starting Vite development server setup...");
+        // Set NODE_ENV to development if not set
+        process.env.NODE_ENV = 'development';
+        await setupVite(app, server);
+        console.log("Vite development server setup complete");
+      } catch (error) {
+        console.error("Failed to setup Vite development server:", error);
+        process.exit(1);
+      }
+    } else {
+      serveStatic(app);
+      console.log("Static file serving setup complete");
+    }
+
+    const port = process.env.PORT ? parseInt(process.env.PORT) : 5000;
+    console.log(`Starting server on port ${port}...`);
+    
+    // Function to find an available port
+    const findAvailablePort = async (startPort: number): Promise<number> => {
+      const net = await import('net');
+      return new Promise((resolve) => {
+        const server = net.createServer();
+        server.unref();
+        server.on('error', (err) => {
+          console.log(`Port ${startPort} is in use, trying next port...`);
+          // Try ports in a range of 5000-5100
+          if (startPort < 5100) {
+            resolve(findAvailablePort(startPort + 1));
+          } else {
+            console.error("No available ports found in range 5000-5100");
+            process.exit(1);
+          }
+        });
+        server.listen(startPort, () => {
+          server.close(() => {
+            resolve(startPort);
+          });
+        });
+      });
+    };
+
+    try {
+      console.log("Checking for available ports...");
+      const availablePort = await findAvailablePort(port);
+      console.log(`Found available port: ${availablePort}`);
+      
+      if (availablePort !== port) {
+        console.log(`Port ${port} is in use, using port ${availablePort} instead`);
+      }
+      
+      server.listen({
+        port: availablePort,
+        host: "0.0.0.0",
+      }, () => {
+        log(`Server is running on port ${availablePort}`);
+        console.log(`You can access the application at: http://localhost:${availablePort}`);
+        console.log(`Development server is running at: http://localhost:3000`);
+      });
+    } catch (error: any) {
+      console.error("Failed to start server:", error);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${port} is already in use. Please try one of these solutions:`);
+        console.error('1. Wait a few minutes for the port to become available');
+        console.error('2. Restart your computer');
+        console.error('3. Use a different port by setting the PORT environment variable');
+        console.error('4. Kill the process using the port with: taskkill /F /IM node.exe');
+      }
+      process.exit(1);
+    }
+  } catch (error) {
+    console.error("Server startup error:", error);
+    process.exit(1);
   }
-
-  // Serve the app on port 5000
-  // this serves both the API and the client.
-  const port = process.env.PORT ? parseInt(process.env.PORT) : 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0", // Use 0.0.0.0 to make it accessible from all networks
-  }, () => {
-    log(`serving on port ${port}`);
-  });
 })();

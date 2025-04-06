@@ -30,4 +30,28 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
+  server: {
+    port: 3000,
+    strictPort: true,
+    hmr: {
+      port: 3000,
+      protocol: 'ws',
+      host: 'localhost',
+      clientPort: 3000
+    },
+    watch: {
+      usePolling: true
+    },
+    middlewareMode: true
+  },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@tanstack/react-query',
+      'wouter'
+    ],
+    exclude: ['@replit/vite-plugin-cartographer']
+  }
 });

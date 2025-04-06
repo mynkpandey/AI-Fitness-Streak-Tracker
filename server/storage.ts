@@ -42,35 +42,89 @@ export interface IStorage {
 // MongoDB implementation
 export class MongoStorage implements IStorage {
   private client: MongoClient;
-  private db: any;
+  public db: any;
   sessionStore: any;
+  private connectionPromise: Promise<void>;
   
   constructor(uri: string) {
     if (!uri) {
       throw new Error("MongoDB URI is required");
     }
-    this.client = new MongoClient(uri);
-    this.connect();
+    this.client = new MongoClient(uri, {
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+      retryWrites: true,
+      retryReads: true,
+      maxPoolSize: 10,
+      minPoolSize: 5,
+      socketTimeoutMS: 45000,
+      family: 4,
+      heartbeatFrequencyMS: 10000,
+      waitQueueTimeoutMS: 10000
+    });
     
-    // Setup session store
+    // Setup session store first
     this.sessionStore = new MongoDBStore({
       uri: uri,
       databaseName: "fitstreak",
-      collection: "sessions"
+      collection: "sessions",
+      connectionOptions: {
+        serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 10000
+      }
     });
     
     this.sessionStore.on('error', (error: any) => {
       console.error('MongoDB session store error:', error);
     });
+    
+    // Initialize connection promise
+    this.connectionPromise = this.connect();
+  }
+  
+  // Add a method to wait for connection
+  async waitForConnection(): Promise<void> {
+    await this.connectionPromise;
   }
   
   private async connect() {
     try {
-      await this.client.connect();
+      console.log("Attempting to connect to MongoDB...");
+      console.log("MongoDB URI:", process.env.MONGODB_URI);
+      
+      // Add a timeout to the connection attempt
+      const connectionPromise = this.client.connect();
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("MongoDB connection timeout after 10 seconds")), 10000);
+      });
+      
+      await Promise.race([connectionPromise, timeoutPromise]);
+      
       this.db = this.client.db("fitstreak");
-      console.log("Connected to MongoDB");
-    } catch (error) {
+      console.log("Successfully connected to MongoDB");
+      
+      // Verify the connection
+      await this.db.command({ ping: 1 });
+      console.log("MongoDB connection verified");
+      
+      // Set up error handling for the connection
+      this.client.on('error', (error) => {
+        console.error('MongoDB client error:', error);
+      });
+      
+      this.client.on('close', () => {
+        console.log('MongoDB connection closed');
+      });
+      
+    } catch (error: any) {
       console.error("MongoDB connection error:", error);
+      console.error("Error details:", {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
+      await this.client.close();
       throw error;
     }
   }
