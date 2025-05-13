@@ -15,6 +15,10 @@ import { ProtectedRoute } from "@/lib/protected-route";
 
 // Auth page
 import AuthPage from "@/pages/auth-page";
+import FAQs from "@/pages/legal/faqs";
+import PrivacyPolicy from "@/pages/legal/privacy-policy";
+import TermsOfService from "@/pages/legal/terms";
+import ContactSupport from "@/pages/legal/contact";
 
 function App() {
   return (
@@ -50,6 +54,10 @@ function AppRoutes() {
           <ProtectedRoute path="/stats" component={Stats} />
           <ProtectedRoute path="/insights" component={Insights} />
           <ProtectedRoute path="/settings" component={Settings} />
+          <ProtectedRoute path="/legal/faqs" component={FAQs} />
+          <ProtectedRoute path="/legal/privacy-policy" component={PrivacyPolicy} />
+          <ProtectedRoute path="/legal/terms" component={TermsOfService} />
+          <ProtectedRoute path="/legal/contact" component={ContactSupport} />
           <Route component={NotFound} />
         </Switch>
       </div>

@@ -11,7 +11,6 @@ import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { X } from "lucide-react";
 
 interface AddActivityModalProps {
   isOpen: boolean;
@@ -75,12 +74,7 @@ export function AddActivityModal({ isOpen, onClose }: AddActivityModalProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-white rounded-xl max-w-md w-full p-6">
         <DialogHeader>
-          <div className="flex justify-between items-center">
-            <DialogTitle className="text-xl font-semibold text-gray-800">Add Activity</DialogTitle>
-            <Button variant="ghost" size="icon" onClick={onClose} className="h-6 w-6 rounded-full">
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="text-xl font-semibold text-gray-800">Add Activity</DialogTitle>
         </DialogHeader>
         
         <Form {...form}>

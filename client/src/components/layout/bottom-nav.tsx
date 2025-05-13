@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, BarChart2, Zap, Settings } from "lucide-react";
+import { Home, BarChart2, Zap, Settings, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { AddActivityModal } from "@/components/activity/add-activity-modal";
 

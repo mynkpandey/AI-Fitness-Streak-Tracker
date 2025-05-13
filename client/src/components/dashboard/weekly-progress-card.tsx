@@ -2,8 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Check } from "lucide-react";
 
+interface WeeklyData {
+  startOfWeek: string;
+  endOfWeek: string;
+  activities: boolean[];
+  completedDays: number;
+}
+
 export function WeeklyProgressCard() {
-  const { data: weekData, isLoading } = useQuery({
+  const { data: weekData, isLoading } = useQuery<WeeklyData>({
     queryKey: ["/api/activities/weekly"],
   });
 
@@ -43,13 +50,13 @@ export function WeeklyProgressCard() {
       <div className="mt-4 pt-4 border-t border-gray-100">
         <h3 className="text-sm font-medium text-gray-700 mb-2">Daily Activity</h3>
         <div className="flex justify-between">
-          {weekData?.activities.map((activity, index) => (
+          {weekData?.activities.map((hasActivity: boolean, index: number) => (
             <div key={index} className="text-center">
               <div className="text-xs text-gray-500 mb-1">{dayAbbr[index]}</div>
               <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                activity ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400'
+                hasActivity ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400'
               }`}>
-                {activity ? (
+                {hasActivity ? (
                   <Check className="h-4 w-4" />
                 ) : (
                   <span className="text-xs font-medium">—</span>

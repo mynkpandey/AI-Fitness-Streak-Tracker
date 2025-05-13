@@ -6,6 +6,7 @@ export type User = {
   username: string;
   password: string;
   email?: string | null;
+  birthday?: Date | null;
   bestStreak?: number;
   currentStreak?: number;
   totalWorkouts?: number;
@@ -17,6 +18,7 @@ export type InsertUser = {
   username: string;
   password: string;
   email?: string | null;
+  birthday?: Date | null;
   bestStreak?: number | null;
   currentStreak?: number | null;
   totalWorkouts?: number | null;

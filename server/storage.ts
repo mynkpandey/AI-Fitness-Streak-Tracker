@@ -263,12 +263,12 @@ export class MongoStorage implements IStorage {
       return { currentStreak: 0, bestStreak: user.bestStreak || 0 };
     }
     
-    // Calculate current streak
+    // Use current UTC date
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
     const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setDate(today.getDate() - 1);
     
     let currentStreak = 0;
     let streakBroken = false;

@@ -3,13 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AISuggestionCard } from "@/components/dashboard/ai-suggestion-card";
-import { BarChart as BarChartIcon, TrendingUp, Award, Calendar, Lightbulb, Send, MessageCircle, Loader2 } from "lucide-react";
+import { BarChart as BarChartIcon, TrendingUp, Award, Calendar, Lightbulb, Send, MessageCircle, Loader2, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useRef, useEffect } from "react";
 import { getHealthAdvice } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Activity, User } from "@shared/schema";
+import { ACHIEVEMENTS } from '@shared/achievements';
 import { 
   ChartContainer, 
   ChartTooltip, 
@@ -28,6 +29,7 @@ import {
   LineChart,
   Line
 } from "recharts";
+import { AchievementsGrid } from '@/components/achievements/achievements-grid';
 
 // Message type for chat
 type Message = {
@@ -240,6 +242,96 @@ export default function Insights() {
     return Object.values(last7Days);
   };
 
+  // Helper function to calculate total points from achievements
+  const getTotalPoints = () => {
+    if (!activities || activities.length === 0) return 0;
+    
+    let totalPoints = 0;
+    const completedAchievements = new Set();
+    
+    // Calculate streak achievements
+    const currentStreak = user?.currentStreak || 0;
+    if (currentStreak >= 3) {
+      totalPoints += 100; // 3-Day Streak
+      completedAchievements.add('streak-3');
+    }
+    if (currentStreak >= 7) {
+      totalPoints += 250; // Weekly Warrior
+      completedAchievements.add('streak-7');
+    }
+    if (currentStreak >= 30) {
+      totalPoints += 1000; // Monthly Master
+      completedAchievements.add('streak-30');
+    }
+    
+    // Calculate total workout achievements
+    const totalWorkouts = user?.totalWorkouts || 0;
+    if (totalWorkouts >= 10) {
+      totalPoints += 100; // Getting Started
+      completedAchievements.add('workouts-10');
+    }
+    if (totalWorkouts >= 50) {
+      totalPoints += 500; // Fitness Enthusiast
+      completedAchievements.add('workouts-50');
+    }
+    
+    // Calculate duration achievements
+    const totalDuration = activities.reduce((sum, activity) => sum + activity.duration, 0);
+    if (totalDuration >= 1000) {
+      totalPoints += 1000; // Thousand Minutes
+      completedAchievements.add('duration-1000');
+    }
+    
+    // Calculate workout type achievements
+    const workoutTypes: Record<string, number> = {};
+    activities.forEach(activity => {
+      workoutTypes[activity.type] = (workoutTypes[activity.type] || 0) + 1;
+    });
+    
+    Object.entries(workoutTypes).forEach(([type, count]) => {
+      if (count >= 10) {
+        totalPoints += 200; // Type-specific achievements
+        completedAchievements.add(`type-${type.toLowerCase()}-10`);
+      }
+    });
+    
+    // Calculate time of day achievements
+    const timeOfDayCounts: Record<string, number> = {
+      morning: 0,
+      night: 0,
+      lunch: 0
+    };
+    
+    activities.forEach(activity => {
+      const hour = new Date(activity.date).getHours();
+      if (hour >= 5 && hour < 9) timeOfDayCounts.morning++;
+      if (hour >= 20 && hour < 23) timeOfDayCounts.night++;
+      if (hour >= 12 && hour < 14) timeOfDayCounts.lunch++;
+    });
+    
+    Object.entries(timeOfDayCounts).forEach(([time, count]) => {
+      if (count >= 10) {
+        totalPoints += 200;
+        completedAchievements.add(`time-${time}-10`);
+      }
+    });
+    
+    // Calculate milestone achievements
+    if (totalWorkouts >= 1) {
+      totalPoints += 50; // First Step
+      completedAchievements.add('milestone-first');
+    }
+    
+    // Calculate challenge achievements
+    const has60MinWorkout = activities.some(a => a.duration >= 60);
+    if (has60MinWorkout) {
+      totalPoints += 200; // Hour Power
+      completedAchievements.add('duration-60');
+    }
+    
+    return totalPoints;
+  };
+
   return (
     <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Insights</h1>
@@ -259,6 +351,25 @@ export default function Insights() {
         
         <TabsContent value="overview" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Trophy className="h-5 w-5 mr-2 text-yellow-500" />
+                  Achievement Points
+                </CardTitle>
+                <CardDescription>Your total achievement score</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isLoading ? (
+                    <Skeleton className="h-8 w-24" />
+                  ) : (
+                    `${getTotalPoints()} points`
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -435,55 +546,7 @@ export default function Insights() {
         </TabsContent>
         
         <TabsContent value="achievements" className="mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className={`border-l-4 ${user?.currentStreak && user.currentStreak >= 3 ? 'border-l-green-500' : 'border-l-gray-300'}`}>
-              <CardHeader>
-                <CardTitle className="text-base">3-Day Streak</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">Complete activities for 3 consecutive days</p>
-                {user?.currentStreak && user.currentStreak >= 3 ? (
-                  <div className="mt-2 text-green-600 font-medium">Achieved!</div>
-                ) : (
-                  <div className="mt-2 text-gray-500">
-                    {user?.currentStreak ? `Progress: ${user.currentStreak}/3 days` : 'Not started'}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            <Card className={`border-l-4 ${user?.currentStreak && user.currentStreak >= 7 ? 'border-l-green-500' : 'border-l-gray-300'}`}>
-              <CardHeader>
-                <CardTitle className="text-base">Weekly Warrior</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">Complete activities for 7 consecutive days</p>
-                {user?.currentStreak && user.currentStreak >= 7 ? (
-                  <div className="mt-2 text-green-600 font-medium">Achieved!</div>
-                ) : (
-                  <div className="mt-2 text-gray-500">
-                    {user?.currentStreak ? `Progress: ${user.currentStreak}/7 days` : 'Not started'}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            <Card className={`border-l-4 ${user?.totalWorkouts && user.totalWorkouts >= 10 ? 'border-l-green-500' : 'border-l-gray-300'}`}>
-              <CardHeader>
-                <CardTitle className="text-base">Getting Started</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">Complete 10 total workouts</p>
-                {user?.totalWorkouts && user.totalWorkouts >= 10 ? (
-                  <div className="mt-2 text-green-600 font-medium">Achieved!</div>
-                ) : (
-                  <div className="mt-2 text-gray-500">
-                    {user?.totalWorkouts ? `Progress: ${user.totalWorkouts}/10 workouts` : 'Not started'}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          <AchievementsGrid />
         </TabsContent>
       </Tabs>
     </main>

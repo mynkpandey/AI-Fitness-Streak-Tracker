@@ -119,7 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getUserId(req);
       
-      // Calculate start and end dates for the current week
+      // Use current UTC date
       const now = new Date();
       const startOfWeek = new Date(now);
       startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday of current week
@@ -129,20 +129,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       endOfWeek.setDate(startOfWeek.getDate() + 6); // Saturday of current week
       endOfWeek.setHours(23, 59, 59, 999);
       
+      console.log('Fetching activities between:', startOfWeek.toISOString(), 'and', endOfWeek.toISOString());
+      
       const activities = await storage.getActivitiesByDateRange(userId, startOfWeek, endOfWeek);
       
       // Organize activities by day of the week
-      const weeklyActivities = Array(7).fill(null);
+      const weeklyActivities = Array(7).fill(false);
       
       activities.forEach(activity => {
         if (activity.date) {
           const activityDate = new Date(activity.date);
           const dayOfWeek = activityDate.getDay(); // 0 = Sunday, 6 = Saturday
-          
-          // If there's already an activity for this day, keep the first one
-          if (!weeklyActivities[dayOfWeek]) {
-            weeklyActivities[dayOfWeek] = activity;
-          }
+          weeklyActivities[dayOfWeek] = true; // Mark day as having activity
         }
       });
       
@@ -150,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startOfWeek,
         endOfWeek,
         activities: weeklyActivities,
-        completedDays: weeklyActivities.filter(a => a !== null).length
+        completedDays: weeklyActivities.filter(Boolean).length
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -161,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getUserId(req);
       
-      // Add current date and user ID if none is provided
+      // Add current UTC date and user ID if none is provided
       const requestData = {
         ...req.body,
         userId,
@@ -175,7 +173,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Creating activity with data:", requestData);
       
       // Create the activity in the database directly
-      // We're skipping Zod validation here since we're supplying all the required fields
       const activity = await storage.createActivity(requestData);
       res.status(201).json(activity);
     } catch (error: any) {

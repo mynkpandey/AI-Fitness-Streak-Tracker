@@ -46,6 +46,31 @@ export async function generateHealthAdvice(userQuestion: string, userProfile?: {
     };
   }
 
+  // Handle date query
+  if (userQuestion.toLowerCase().includes('date') || userQuestion.toLowerCase().includes('today')) {
+    const today = new Date();
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZone: 'Asia/Kolkata'
+    };
+    return {
+      response: `Today is ${today.toLocaleDateString('en-US', options)} (IST)`
+    };
+  }
+
+  // Handle creator query
+  if (userQuestion.toLowerCase().includes('created') || userQuestion.toLowerCase().includes('invented') || userQuestion.toLowerCase().includes('who made you')) {
+    return {
+      response: "I was created by the brilliant minds of Mayank Pandey, Raushan Raj, and Aman Raj. They are exceptional developers who have built an amazing fitness tracking platform that helps people achieve their health goals."
+    };
+  }
+
   const model = genAI.getGenerativeModel(modelConfig);
   
   // Create a context-aware prompt with user profile if available
@@ -65,13 +90,19 @@ export async function generateHealthAdvice(userQuestion: string, userProfile?: {
   }
   
   const prompt = `
-  You are a helpful, friendly fitness and health assistant. A user is asking for health advice.
+  You are a helpful, friendly health and fitness assistant. A user is asking for health advice.
   
   ${contextPrompt}
   
   User question: "${userQuestion}"
   
-  Please provide a helpful, accurate, and concise response. Focus on evidence-based information.
+  Please provide a helpful, accurate, and concise response. Focus ONLY on the following topics:
+  - General health and wellness
+  - Fitness and exercise
+  - Diet and nutrition
+  
+  If the question is not related to these topics, politely inform the user that you can only provide advice about health, fitness, and nutrition.
+  
   Keep your response under 150 words and make it conversational but informative.
   DO NOT include any headers, disclaimers, or notes about being an AI.
   `;
@@ -89,7 +120,6 @@ export async function generateHealthAdvice(userQuestion: string, userProfile?: {
   } catch (error) {
     console.error('Error generating health advice with Gemini API:', error);
     console.error('This could be due to an invalid API key or network connectivity issues');
-    // Return a more helpful error message that doesn't use mock data
     return {
       response: "I couldn't process your request due to a technical issue. Please try again later or contact support if the problem persists."
     };

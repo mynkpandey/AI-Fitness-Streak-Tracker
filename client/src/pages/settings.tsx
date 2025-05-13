@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
-  AlertCircle, Bell, User, Shield, HelpCircle, Loader2, Trash2
+  AlertCircle, Bell, User, Shield, HelpCircle, Loader2, Trash2, LogOut, FileText, Mail
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
+import { Link } from "wouter";
+import { ProfileEditor } from "@/components/settings/profile-editor";
 
 export default function Settings() {
   const { user, logoutMutation } = useAuth();
@@ -22,8 +24,6 @@ export default function Settings() {
     
     try {
       setIsDeleting(true);
-      // In MongoDB, we can just use the authenticated session, so pass the user.id
-      // The server will use the session userId to perform the action
       await apiRequest("DELETE", `/api/users/${user.id}`);
       
       toast({
@@ -32,8 +32,6 @@ export default function Settings() {
       });
       
       setDeleteDialogOpen(false);
-      
-      // Logout the user after data deletion
       logoutMutation.mutate();
     } catch (error) {
       console.error("Error deleting account:", error);
@@ -46,6 +44,22 @@ export default function Settings() {
       setIsDeleting(false);
     }
   }
+
+  const handleLogout = async () => {
+    try {
+      await logoutMutation.mutateAsync();
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">
@@ -75,44 +89,16 @@ export default function Settings() {
                 <h3 className="text-base font-medium">Profile Information</h3>
                 <p className="text-sm text-gray-500">Update your account details</p>
               </div>
-              <Button variant="outline">
-                Edit
-              </Button>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-base font-medium">Email</h3>
-                <p className="text-sm text-gray-500">{user?.email || "Not set"}</p>
-              </div>
-              <Button variant="outline">
-                Change
-              </Button>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-base font-medium">Password</h3>
-                <p className="text-sm text-gray-500">••••••••</p>
-              </div>
-              <Button variant="outline">
-                Change
-              </Button>
+              <ProfileEditor />
             </div>
             
             <div className="pt-2">
               <Button 
                 variant="destructive" 
                 className="w-full"
-                onClick={() => logoutMutation.mutate()}
-                disabled={logoutMutation.isPending}
+                onClick={handleLogout}
               >
-                {logoutMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                    Signing out...
-                  </>
-                ) : "Sign out"}
+                Logout
               </Button>
             </div>
           </CardContent>
@@ -125,112 +111,49 @@ export default function Settings() {
               <Bell className="h-5 w-5 mr-2 text-primary" />
               Notifications
             </CardTitle>
-            <CardDescription>Configure how you receive notifications</CardDescription>
+            <CardDescription>Manage your notification preferences</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-base font-medium">Push Notifications</h3>
-                <p className="text-sm text-gray-500">Receive push notifications for activity reminders</p>
-              </div>
-              <Switch defaultChecked={true} />
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <div>
                 <h3 className="text-base font-medium">Email Notifications</h3>
-                <p className="text-sm text-gray-500">Receive emails for streak milestones</p>
+                <p className="text-sm text-gray-500">Receive updates via email</p>
               </div>
-              <Switch defaultChecked={true} />
+              <Switch />
             </div>
             
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-base font-medium">Weekly Summary</h3>
-                <p className="text-sm text-gray-500">Receive a weekly summary of your activities</p>
+                <h3 className="text-base font-medium">Streak Reminders</h3>
+                <p className="text-sm text-gray-500">Get reminders to maintain your streak</p>
               </div>
-              <Switch defaultChecked={false} />
+              <Switch />
             </div>
           </CardContent>
         </Card>
         
-        {/* Privacy */}
+        {/* Privacy & Security */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
               <Shield className="h-5 w-5 mr-2 text-primary" />
-              Privacy & Data
+              Privacy & Security
             </CardTitle>
-            <CardDescription>Manage your data and privacy settings</CardDescription>
+            <CardDescription>Manage your privacy and security settings</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-base font-medium">Data Analytics</h3>
-                <p className="text-sm text-gray-500">Allow anonymous usage data to improve the app</p>
+                <h3 className="text-base font-medium">Delete Account</h3>
+                <p className="text-sm text-gray-500">Permanently delete your account and all data</p>
               </div>
-              <Switch defaultChecked={true} />
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-base font-medium">Share Progress</h3>
-                <p className="text-sm text-gray-500">Allow sharing your progress with friends</p>
-              </div>
-              <Switch defaultChecked={false} />
-            </div>
-            
-            <div className="pt-2">
               <Button 
-                variant="outline" 
-                className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                variant="destructive" 
                 onClick={() => setDeleteDialogOpen(true)}
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Account
+                Delete
               </Button>
             </div>
-            
-            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle className="text-destructive flex items-center">
-                    <Trash2 className="h-5 w-5 mr-2" />
-                    Delete Account
-                  </DialogTitle>
-                  <DialogDescription>
-                    This will permanently delete your account and all your data. This action cannot be undone.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="py-4">
-                  <p className="text-sm text-gray-500">
-                    Your account and all associated data will be completely removed from our system.
-                  </p>
-                </div>
-                <DialogFooter>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setDeleteDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    variant="destructive"
-                    onClick={handleDeleteAccount}
-                    disabled={isDeleting}
-                  >
-                    {isDeleting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Deleting...
-                      </>
-                    ) : (
-                      "Delete Account"
-                    )}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
           </CardContent>
         </Card>
         
@@ -241,34 +164,77 @@ export default function Settings() {
               <HelpCircle className="h-5 w-5 mr-2 text-primary" />
               Help & Support
             </CardTitle>
-            <CardDescription>Get help using FitStreak</CardDescription>
+            <CardDescription>Get help and support</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>About FitStreak</AlertTitle>
-              <AlertDescription>
-                FitStreak v1.0.0 - AI-powered fitness streak tracking application
-              </AlertDescription>
-            </Alert>
-            
-            <div className="space-y-2">
-              <Button variant="outline" className="w-full">
-                Contact Support
-              </Button>
-              <Button variant="outline" className="w-full">
+            <Link href="/legal/faqs">
+              <Button variant="ghost" className="w-full justify-start">
+                <HelpCircle className="h-4 w-4 mr-2" />
                 FAQs
               </Button>
-              <Button variant="outline" className="w-full">
+            </Link>
+            
+            <Link href="/legal/contact">
+              <Button variant="ghost" className="w-full justify-start">
+                <Mail className="h-4 w-4 mr-2" />
+                Contact Support
+              </Button>
+            </Link>
+            
+            <Link href="/legal/privacy-policy">
+              <Button variant="ghost" className="w-full justify-start">
+                <Shield className="h-4 w-4 mr-2" />
                 Privacy Policy
               </Button>
-              <Button variant="outline" className="w-full">
+            </Link>
+            
+            <Link href="/legal/terms">
+              <Button variant="ghost" className="w-full justify-start">
+                <FileText className="h-4 w-4 mr-2" />
                 Terms of Service
               </Button>
-            </div>
+            </Link>
           </CardContent>
         </Card>
       </div>
+      
+      {/* Delete Account Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Account</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete your account? This action cannot be undone.
+              All your data will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Account
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
