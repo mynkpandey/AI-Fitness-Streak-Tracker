@@ -1,4 +1,4 @@
-# FitnessAI 🏋️‍♂️
+# AI Fitness Streak 🏋️‍♂️
 
 A modern fitness tracking application powered by AI to help you maintain your workout streak and achieve your fitness goals.
 
@@ -25,8 +25,8 @@ A modern fitness tracking application powered by AI to help you maintain your wo
   - Node.js
   - Express
   - MongoDB
-  - Passport.js (Authentication)
-  - Vite (Development Server)
+  - Express Session with MongoDB Store
+  - TypeScript
 
 - **AI Integration**:
   - Google Gemini API
@@ -41,8 +41,8 @@ A modern fitness tracking application powered by AI to help you maintain your wo
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/fitnessai.git
-cd fitnessai
+git clone https://github.com/yourusername/ai-fitness-streak.git
+cd ai-fitness-streak
 ```
 
 2. Install dependencies:
@@ -58,7 +58,7 @@ MONGODB_URI=your_mongodb_connection_string
 # Google Gemini API Key
 GEMINI_API_KEY=your_gemini_api_key
 
-# Optional: Set a strong session secret for production
+# Session Configuration
 SESSION_SECRET=your_strong_secret_here
 ```
 
@@ -79,12 +79,11 @@ The application will be available at:
 - `npm run build`: Build the application for production
 - `npm run start`: Start the production server
 - `npm run check`: Run TypeScript type checking
-- `npm run db:push`: Push database schema changes
 
 ## Project Structure 📁
 
 ```
-fitnessai/
+ai-fitness-streak/
 ├── client/           # Frontend React application
 │   ├── src/         # Source files
 │   └── index.html   # Entry HTML file
@@ -113,11 +112,38 @@ fitnessai/
 ### Activities
 - `GET /api/activities` - Get user activities
 - `POST /api/activities` - Create new activity
-- `GET /api/activities/weekly` - Get weekly activities
+- `GET /api/activities/range` - Get activities by date range
 
 ### Suggestions
 - `GET /api/suggestions` - Get workout suggestions
 - `POST /api/suggestions` - Create new suggestion
+- `PUT /api/suggestions/:id/use` - Mark suggestion as used
+
+## Database Schema 📊
+
+### Users
+- `id`: Number (auto-increment)
+- `username`: String (unique)
+- `email`: String (optional)
+- `currentStreak`: Number
+- `bestStreak`: Number
+- `totalWorkouts`: Number
+- `lastWorkoutDate`: Date
+- `createdAt`: Date
+
+### Activities
+- `id`: Number (auto-increment)
+- `userId`: Number
+- `date`: Date
+- `notes`: String (optional)
+- `streakDay`: Number
+- `completed`: Boolean
+
+### Suggestions
+- `id`: Number (auto-increment)
+- `userId`: Number
+- `date`: Date
+- `used`: Boolean
 
 ## Contributing 🤝
 
